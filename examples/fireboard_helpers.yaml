@@ -1,0 +1,73 @@
+# FireBoard helper entities
+#
+# Paste into configuration.yaml (or a package file if you use !include),
+# then Developer Tools > YAML > Restart, or restart Home Assistant.
+#
+# Adjust/remove channel blocks to match how many probes you actually use.
+# Entity IDs here assume your device is "fireboard1" with channel "smoker"
+# (renamed channel 1) plus channel2-6 — rename to match your actual sensors
+# if different.
+
+input_number:
+  fireboard_smoker_target:
+    name: Smoker Target Temp
+    min: 32
+    max: 500
+    step: 1
+    unit_of_measurement: "°F"
+    icon: mdi:thermometer
+  fireboard_channel2_target:
+    name: Probe 2 Target Temp
+    min: 32
+    max: 500
+    step: 1
+    unit_of_measurement: "°F"
+    icon: mdi:thermometer
+  fireboard_channel3_target:
+    name: Probe 3 Target Temp
+    min: 32
+    max: 500
+    step: 1
+    unit_of_measurement: "°F"
+    icon: mdi:thermometer
+  fireboard_channel4_target:
+    name: Probe 4 Target Temp
+    min: 32
+    max: 500
+    step: 1
+    unit_of_measurement: "°F"
+    icon: mdi:thermometer
+  fireboard_channel5_target:
+    name: Probe 5 Target Temp
+    min: 32
+    max: 500
+    step: 1
+    unit_of_measurement: "°F"
+    icon: mdi:thermometer
+  fireboard_channel6_target:
+    name: Probe 6 Target Temp
+    min: 32
+    max: 500
+    step: 1
+    unit_of_measurement: "°F"
+    icon: mdi:thermometer
+
+input_boolean:
+  fireboard_smoker_notify:
+    name: Smoker Notifications
+    icon: mdi:bell
+  fireboard_channel2_notify:
+    name: Probe 2 Notifications
+    icon: mdi:bell
+  fireboard_channel3_notify:
+    name: Probe 3 Notifications
+    icon: mdi:bell
+  fireboard_channel4_notify:
+    name: Probe 4 Notifications
+    icon: mdi:bell
+  fireboard_channel5_notify:
+    name: Probe 5 Notifications
+    icon: mdi:bell
+  fireboard_channel6_notify:
+    name: Probe 6 Notifications
+    icon: mdi:bell

@@ -1,0 +1,55 @@
+# FireBoard target-temp notification automation
+#
+# Import via Settings > Automations & Scenes > + Add Automation > Edit in YAML,
+# then paste this in. Requires the helpers in fireboard_helpers.yaml to exist
+# first, and update notify.mobile_app_your_phone to your actual mobile app
+# notify service (Settings > Devices & Services > Mobile App > look at the
+# service name, e.g. notify.mobile_app_adams_iphone).
+#
+# Each trigger's "id" matches the naming convention used by the helpers, so
+# the condition/action can look up the right target + notify toggle
+# dynamically — add or remove trigger blocks to match your actual channels,
+# no other changes needed.
+
+alias: "FireBoard: Target Temp Notifications"
+description: >-
+  Notifies when a FireBoard channel crosses its configured target temp,
+  only if notifications are enabled for that channel.
+mode: parallel
+trigger:
+  - platform: numeric_state
+    entity_id: sensor.fireboard1_smoker
+    above: input_number.fireboard_smoker_target
+    id: smoker
+  - platform: numeric_state
+    entity_id: sensor.fireboard1_channel2
+    above: input_number.fireboard_channel2_target
+    id: channel2
+  - platform: numeric_state
+    entity_id: sensor.fireboard1_channel3
+    above: input_number.fireboard_channel3_target
+    id: channel3
+  - platform: numeric_state
+    entity_id: sensor.fireboard1_channel4
+    above: input_number.fireboard_channel4_target
+    id: channel4
+  - platform: numeric_state
+    entity_id: sensor.fireboard1_channel5
+    above: input_number.fireboard_channel5_target
+    id: channel5
+  - platform: numeric_state
+    entity_id: sensor.fireboard1_channel6
+    above: input_number.fireboard_channel6_target
+    id: channel6
+condition:
+  - condition: template
+    value_template: >-
+      {{ is_state('input_boolean.fireboard_' ~ trigger.id ~ '_notify', 'on') }}
+action:
+  - service: notify.mobile_app_your_phone
+    data:
+      title: "🔥 {{ trigger.to_state.name }} reached target"
+      message: >-
+        {{ trigger.to_state.state }}{{ trigger.to_state.attributes.unit_of_measurement }}
+        reached, target was
+        {{ states('input_number.fireboard_' ~ trigger.id ~ '_target') }}°F.
