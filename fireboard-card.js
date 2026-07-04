@@ -59,7 +59,49 @@ function resolveChannelName(ch, hass) {
   return state?.attributes?.friendly_name || ch.sensor || 'Channel';
 }
 
-function isDarkMode(hass) {
+function parseColorToRgb(str) {
+  if (!str) return null;
+  str = str.trim();
+  const tripletMatch = str.match(/^(-?\d+(\.\d+)?)\s*,\s*(-?\d+(\.\d+)?)\s*,\s*(-?\d+(\.\d+)?)$/);
+  if (tripletMatch) {
+    return { r: parseFloat(tripletMatch[1]), g: parseFloat(tripletMatch[3]), b: parseFloat(tripletMatch[5]) };
+  }
+  const hexMatch = str.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
+  if (hexMatch) {
+    let hex = hexMatch[1];
+    if (hex.length === 3) hex = hex.split('').map((c) => c + c).join('');
+    const num = parseInt(hex, 16);
+    return { r: (num >> 16) & 255, g: (num >> 8) & 255, b: num & 255 };
+  }
+  const rgbMatch = str.match(/rgba?\(([^)]+)\)/i);
+  if (rgbMatch) {
+    const nums = rgbMatch[1].split(',').map((s) => parseFloat(s.trim()));
+    if (nums.length >= 3) return { r: nums[0], g: nums[1], b: nums[2] };
+  }
+  return null;
+}
+
+function detectDarkFromHost(el) {
+  if (!el || !el.isConnected) return null;
+  const style = getComputedStyle(el);
+  const candidates = [
+    '--card-background-color',
+    '--rgb-primary-background-color',
+    '--primary-background-color',
+  ];
+  for (const varName of candidates) {
+    const rgb = parseColorToRgb(style.getPropertyValue(varName));
+    if (rgb) {
+      const luminance = (0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b) / 255;
+      return luminance < 0.5;
+    }
+  }
+  return null;
+}
+
+function isDarkMode(hass, el) {
+  const hostDark = detectDarkFromHost(el);
+  if (hostDark !== null) return hostDark;
   if (typeof hass?.themes?.darkMode === 'boolean') return hass.themes.darkMode;
   return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
 }
@@ -77,7 +119,7 @@ class FireboardCard extends HTMLElement {
 
   set hass(hass) {
     this._hass = hass;
-    const dark = isDarkMode(hass);
+    const dark = isDarkMode(hass, this);
     const themeChanged = this._isDark !== dark;
     this._isDark = dark;
 
@@ -89,6 +131,15 @@ class FireboardCard extends HTMLElement {
       this._applyPalette();
     }
     this._updateValues();
+  }
+
+  connectedCallback() {
+    if (!this._built) return;
+    const dark = isDarkMode(this._hass, this);
+    if (dark !== this._isDark) {
+      this._isDark = dark;
+      this._applyPalette();
+    }
   }
 
   get _visibleChannels() {
