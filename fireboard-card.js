@@ -53,6 +53,12 @@ function clamp(v, lo, hi) {
   return Math.max(lo, Math.min(hi, v));
 }
 
+function resolveChannelName(ch, hass) {
+  if (ch.name) return ch.name;
+  const state = hass?.states?.[ch.sensor];
+  return state?.attributes?.friendly_name || ch.sensor || 'Channel';
+}
+
 function isDarkMode(hass) {
   if (typeof hass?.themes?.darkMode === 'boolean') return hass.themes.darkMode;
   return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -202,7 +208,8 @@ class FireboardCard extends HTMLElement {
         line-height: 1;
       `;
       const nameEl = document.createElement('div');
-      nameEl.textContent = ch.name || ch.sensor;
+      nameEl.dataset.role = 'name';
+      nameEl.textContent = resolveChannelName(ch, this._hass);
       nameEl.style.cssText = `
         margin-top: 4px;
         font-size: 0.72em;
@@ -329,6 +336,9 @@ class FireboardCard extends HTMLElement {
       const hasVal = !Number.isNaN(rawVal);
       const unit = sensorState?.attributes?.unit_of_measurement || '°F';
 
+      const nameEl = tile.querySelector('[data-role="name"]');
+      if (nameEl) nameEl.textContent = resolveChannelName(ch, this._hass);
+
       const tempEl = tile.querySelector('[data-role="temp"]');
       tempEl.textContent = hasVal ? `${Math.round(rawVal)}°` : '—';
 
@@ -416,11 +426,13 @@ class FireboardCardEditor extends HTMLElement {
   setConfig(config) {
     this._config = JSON.parse(JSON.stringify(config || {}));
     if (!this._config.channels) this._config.channels = [];
+    this._built = false;
     this._render();
   }
 
   set hass(hass) {
     this._hass = hass;
+    if (!this._config) return;
     if (this._built) this._refreshPickers();
     else this._render();
   }
@@ -576,10 +588,12 @@ class FireboardCardEditor extends HTMLElement {
       const nameInput = document.createElement('input');
       nameInput.type = 'text';
       nameInput.value = ch.name || '';
-      nameInput.placeholder = 'Display name';
+      const deviceName = this._hass?.states?.[ch.sensor]?.attributes?.friendly_name;
+      nameInput.placeholder = deviceName ? `Default: ${deviceName}` : 'Display name (optional)';
+      nameInput.title = 'Leave blank to use the sensor\'s name from Home Assistant';
       nameInput.style.cssText = 'flex:1; padding:6px; border-radius:4px; border:1px solid var(--divider-color); background:var(--secondary-background-color); color:var(--primary-text-color);';
       nameInput.addEventListener('change', (e) => {
-        ch.name = e.target.value;
+        ch.name = e.target.value || undefined;
         this._fireChanged();
       });
 

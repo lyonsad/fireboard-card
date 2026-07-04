@@ -69,7 +69,7 @@ Only listed channels render, and each accepts:
 | Key | Required | Description |
 |---|---|---|
 | `sensor` | yes | The FireBoard temperature sensor entity |
-| `name` | no | Display label (defaults to the sensor's entity ID) |
+| `name` | no | Display label — defaults to the sensor's name in Home Assistant (e.g. "Smoker", "Channel2") if left unset |
 | `target` | no | `input_number` entity holding the target temp |
 | `notify` | no | `input_boolean` entity controlling that channel's alert |
 | `min` / `max` | no | Gauge range, defaults to 32–500°F |
