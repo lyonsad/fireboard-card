@@ -1,53 +1,19 @@
-// FireBoard Probes Card — v3
+// FireBoard Probes Card — v4
 // Circular gauge per channel, editable target temps, per-channel notify
-// toggles, automatic light/dark theme matching, and a visual editor for
-// picking which channels show on the card.
+// toggles, a visual editor for picking channels, and now matches your
+// Home Assistant theme exactly (fonts, backgrounds, colors) by using HA's
+// own CSS variables instead of a custom palette. The only distinctive
+// visual element is the temperature-ramp gauge ring itself.
 //
 // Install: copy to /config/www/fireboard-card.js, then add as a Lovelace
 // resource (Settings > Dashboards > ... > Resources > Add Resource,
 // URL: /local/fireboard-card.js, type: JavaScript Module).
-//
-// You can hand-write YAML as before, or add the card via the UI ("+ Add
-// Card" > FireBoard Probes Card) and use the visual editor to check which
-// channels appear and fill in each channel's sensor/target/notify entities.
 
-const FONT_IMPORT_ID = 'fireboard-card-fonts';
 const RADIUS = 65;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
-
-const PALETTES = {
-  dark: {
-    bg: '#14161b',
-    panel: '#1c1f26',
-    track: '#2a2e37',
-    text: '#f2efe9',
-    textDim: '#8a91a0',
-    fieldBg: 'rgba(255,255,255,0.06)',
-    divider: 'rgba(255,255,255,0.06)',
-  },
-  light: {
-    bg: '#f7f5f0',
-    panel: '#ffffff',
-    track: '#e4e0d6',
-    text: '#2b2a27',
-    textDim: '#6f6b62',
-    fieldBg: 'rgba(0,0,0,0.05)',
-    divider: 'rgba(0,0,0,0.08)',
-  },
-};
 const COLD = '#3e8ede';
 const WARM = '#ffb020';
 const HOT = '#ff4d2e';
-
-function ensureFonts() {
-  if (document.getElementById(FONT_IMPORT_ID)) return;
-  const link = document.createElement('link');
-  link.id = FONT_IMPORT_ID;
-  link.rel = 'stylesheet';
-  link.href =
-    'https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Roboto+Mono:wght@500;700&display=swap';
-  document.head.appendChild(link);
-}
 
 function clamp(v, lo, hi) {
   return Math.max(lo, Math.min(hi, v));
@@ -57,53 +23,6 @@ function resolveChannelName(ch, hass) {
   if (ch.name) return ch.name;
   const state = hass?.states?.[ch.sensor];
   return state?.attributes?.friendly_name || ch.sensor || 'Channel';
-}
-
-function parseColorToRgb(str) {
-  if (!str) return null;
-  str = str.trim();
-  const tripletMatch = str.match(/^(-?\d+(\.\d+)?)\s*,\s*(-?\d+(\.\d+)?)\s*,\s*(-?\d+(\.\d+)?)$/);
-  if (tripletMatch) {
-    return { r: parseFloat(tripletMatch[1]), g: parseFloat(tripletMatch[3]), b: parseFloat(tripletMatch[5]) };
-  }
-  const hexMatch = str.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
-  if (hexMatch) {
-    let hex = hexMatch[1];
-    if (hex.length === 3) hex = hex.split('').map((c) => c + c).join('');
-    const num = parseInt(hex, 16);
-    return { r: (num >> 16) & 255, g: (num >> 8) & 255, b: num & 255 };
-  }
-  const rgbMatch = str.match(/rgba?\(([^)]+)\)/i);
-  if (rgbMatch) {
-    const nums = rgbMatch[1].split(',').map((s) => parseFloat(s.trim()));
-    if (nums.length >= 3) return { r: nums[0], g: nums[1], b: nums[2] };
-  }
-  return null;
-}
-
-function detectDarkFromHost(el) {
-  if (!el || !el.isConnected) return null;
-  const style = getComputedStyle(el);
-  const candidates = [
-    '--card-background-color',
-    '--rgb-primary-background-color',
-    '--primary-background-color',
-  ];
-  for (const varName of candidates) {
-    const rgb = parseColorToRgb(style.getPropertyValue(varName));
-    if (rgb) {
-      const luminance = (0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b) / 255;
-      return luminance < 0.5;
-    }
-  }
-  return null;
-}
-
-function isDarkMode(hass, el) {
-  const hostDark = detectDarkFromHost(el);
-  if (hostDark !== null) return hostDark;
-  if (typeof hass?.themes?.darkMode === 'boolean') return hass.themes.darkMode;
-  return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
 }
 
 class FireboardCard extends HTMLElement {
@@ -119,106 +38,44 @@ class FireboardCard extends HTMLElement {
 
   set hass(hass) {
     this._hass = hass;
-    const dark = isDarkMode(hass, this);
-    const themeChanged = this._isDark !== dark;
-    this._isDark = dark;
-
     if (!this._built) {
-      ensureFonts();
       this._buildCard();
       this._built = true;
-    } else if (themeChanged) {
-      this._applyPalette();
     }
     this._updateValues();
-  }
-
-  connectedCallback() {
-    if (!this._built) return;
-    const dark = isDarkMode(this._hass, this);
-    if (dark !== this._isDark) {
-      this._isDark = dark;
-      this._applyPalette();
-    }
   }
 
   get _visibleChannels() {
     return this.config.channels.filter((ch) => ch.enabled !== false);
   }
 
-  _applyPalette() {
-    const p = PALETTES[this._isDark ? 'dark' : 'light'];
-    this._card.style.setProperty('--fb-bg', p.bg);
-    this._card.style.setProperty('--fb-panel', p.panel);
-    this._card.style.setProperty('--fb-track', p.track);
-    this._card.style.setProperty('--fb-text', p.text);
-    this._card.style.setProperty('--fb-text-dim', p.textDim);
-    this._card.style.setProperty('--fb-field-bg', p.fieldBg);
-    this._card.style.setProperty('--fb-divider', p.divider);
-  }
-
   _buildCard() {
     const card = document.createElement('ha-card');
-    card.style.cssText = `
-      --fb-cold: ${COLD};
-      --fb-warm: ${WARM};
-      --fb-hot: ${HOT};
-      background: var(--fb-bg);
-      border-radius: 16px;
-      overflow: hidden;
-      padding: 0;
-      font-family: 'Chakra Petch', 'Segoe UI', sans-serif;
-      transition: background 0.2s ease;
-    `;
-    this._card = card;
-    this._applyPalette();
-
-    const header = document.createElement('div');
-    header.style.cssText = `
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 14px 18px 10px;
-      border-bottom: 1px solid var(--fb-divider);
-    `;
-    const title = document.createElement('div');
-    title.textContent = this.config.title || 'FireBoard';
-    title.style.cssText = `
-      font-weight: 700;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      font-size: 0.95em;
-      color: var(--fb-text);
-    `;
-    const flameBar = document.createElement('div');
-    flameBar.style.cssText = `
-      width: 44px; height: 4px; border-radius: 2px;
-      background: linear-gradient(90deg, var(--fb-cold), var(--fb-warm), var(--fb-hot));
-    `;
-    header.appendChild(title);
-    header.appendChild(flameBar);
+    if (this.config.title !== false) {
+      card.header = this.config.title || 'FireBoard';
+    }
 
     const grid = document.createElement('div');
     const columns = this.config.columns || 'auto-fill';
     grid.style.cssText = `
       display: grid;
       grid-template-columns: repeat(${columns === 'auto-fill' ? 'auto-fill, minmax(140px, 1fr)' : columns});
-      gap: 14px;
-      padding: 16px 18px 18px;
+      gap: 12px;
+      padding: 0 16px 16px;
     `;
 
     this._visibleChannels.forEach((ch, i) => {
       const tile = document.createElement('div');
       tile.dataset.channel = i;
       tile.style.cssText = `
-        background: var(--fb-panel);
-        border-radius: 14px;
+        background: var(--secondary-background-color);
+        border: 1px solid var(--divider-color);
+        border-radius: var(--ha-card-border-radius, 12px);
         padding: 12px 10px 10px;
         display: flex;
         flex-direction: column;
         align-items: center;
         gap: 8px;
-        box-shadow: inset 0 0 0 1px var(--fb-divider);
       `;
 
       const gaugeWrap = document.createElement('div');
@@ -234,13 +91,13 @@ class FireboardCard extends HTMLElement {
               <stop offset="100%" stop-color="${HOT}"/>
             </linearGradient>
           </defs>
-          <circle cx="80" cy="80" r="${RADIUS}" fill="none" stroke="var(--fb-track)" stroke-width="10"/>
+          <circle cx="80" cy="80" r="${RADIUS}" fill="none" stroke="var(--divider-color)" stroke-width="10"/>
           <circle data-role="value-arc" cx="80" cy="80" r="${RADIUS}" fill="none"
             stroke="url(#${gradId})" stroke-width="10" stroke-linecap="round"
             stroke-dasharray="${CIRCUMFERENCE}" stroke-dashoffset="${CIRCUMFERENCE}"
             style="transform: rotate(-90deg); transform-origin: 50% 50%; transition: stroke-dashoffset 0.6s ease;"/>
           <line data-role="target-tick" x1="80" y1="80" x2="80" y2="80"
-            stroke="var(--fb-text)" stroke-width="3" stroke-linecap="round"/>
+            stroke="var(--primary-text-color)" stroke-width="3" stroke-linecap="round"/>
         </svg>
       `;
 
@@ -248,14 +105,14 @@ class FireboardCard extends HTMLElement {
       center.style.cssText = `
         position: absolute; inset: 0;
         display: flex; flex-direction: column; align-items: center; justify-content: center;
+        font-family: var(--paper-font-body1_-_font-family, inherit);
       `;
       const tempEl = document.createElement('div');
       tempEl.dataset.role = 'temp';
       tempEl.style.cssText = `
-        font-family: 'Roboto Mono', monospace;
-        font-weight: 700;
-        font-size: 1.55em;
-        color: var(--fb-text);
+        font-weight: 500;
+        font-size: 1.5em;
+        color: var(--primary-text-color);
         line-height: 1;
       `;
       const nameEl = document.createElement('div');
@@ -263,11 +120,8 @@ class FireboardCard extends HTMLElement {
       nameEl.textContent = resolveChannelName(ch, this._hass);
       nameEl.style.cssText = `
         margin-top: 4px;
-        font-size: 0.72em;
-        font-weight: 600;
-        letter-spacing: 0.03em;
-        text-transform: uppercase;
-        color: var(--fb-text-dim);
+        font-size: 0.8em;
+        color: var(--secondary-text-color);
         text-align: center;
         max-width: 100px;
         overflow: hidden;
@@ -285,11 +139,11 @@ class FireboardCard extends HTMLElement {
       targetBtn.dataset.role = 'target-btn';
       targetBtn.type = 'button';
       targetBtn.style.cssText = `
-        background: var(--fb-field-bg);
-        border: none; border-radius: 8px;
-        color: var(--fb-text-dim);
-        font-family: 'Roboto Mono', monospace;
-        font-size: 0.75em;
+        background: var(--divider-color);
+        border: none; border-radius: var(--mdc-shape-small, 6px);
+        color: var(--secondary-text-color);
+        font-family: inherit;
+        font-size: 0.8em;
         padding: 5px 8px;
         cursor: pointer;
       `;
@@ -306,13 +160,13 @@ class FireboardCard extends HTMLElement {
       notifyBtn.type = 'button';
       notifyBtn.title = 'Toggle notifications';
       notifyBtn.style.cssText = `
-        background: var(--fb-field-bg);
-        border: none; border-radius: 8px;
+        background: var(--divider-color);
+        border: none; border-radius: var(--mdc-shape-small, 6px);
         width: 26px; height: 26px;
         display: flex; align-items: center; justify-content: center;
         cursor: pointer;
         font-size: 0.9em;
-        color: var(--fb-text-dim);
+        color: var(--secondary-text-color);
       `;
       notifyBtn.textContent = '🔔';
       notifyBtn.addEventListener('click', () => {
@@ -334,7 +188,6 @@ class FireboardCard extends HTMLElement {
       grid.appendChild(tile);
     });
 
-    card.appendChild(header);
     card.appendChild(grid);
     this.innerHTML = '';
     this.appendChild(card);
@@ -351,8 +204,8 @@ class FireboardCard extends HTMLElement {
     input.value = current;
     input.style.cssText = `
       width: 52px; text-align: center;
-      background: transparent; border: none; border-bottom: 1px solid var(--fb-text-dim);
-      color: var(--fb-text); font-family: 'Roboto Mono', monospace; font-size: 1em;
+      background: transparent; border: none; border-bottom: 1px solid var(--secondary-text-color);
+      color: var(--primary-text-color); font-family: inherit; font-size: 1em;
       outline: none;
     `;
     const commit = () => {
@@ -382,13 +235,13 @@ class FireboardCard extends HTMLElement {
       const min = ch.min ?? 32;
       const max = ch.max ?? 500;
 
+      const nameEl = tile.querySelector('[data-role="name"]');
+      if (nameEl) nameEl.textContent = resolveChannelName(ch, this._hass);
+
       const sensorState = this._hass.states[ch.sensor];
       const rawVal = sensorState ? parseFloat(sensorState.state) : NaN;
       const hasVal = !Number.isNaN(rawVal);
       const unit = sensorState?.attributes?.unit_of_measurement || '°F';
-
-      const nameEl = tile.querySelector('[data-role="name"]');
-      if (nameEl) nameEl.textContent = resolveChannelName(ch, this._hass);
 
       const tempEl = tile.querySelector('[data-role="temp"]');
       tempEl.textContent = hasVal ? `${Math.round(rawVal)}°` : '—';
@@ -429,8 +282,8 @@ class FireboardCard extends HTMLElement {
       const notifyBtn = tile.querySelector('[data-role="notify-btn"]');
       const notifyOn = ch.notify && this._hass.states[ch.notify]?.state === 'on';
       notifyBtn.style.opacity = ch.notify ? '1' : '0.4';
-      notifyBtn.style.background = notifyOn ? 'rgba(255,80,40,0.18)' : 'var(--fb-field-bg)';
-      notifyBtn.style.color = notifyOn ? HOT : 'var(--fb-text-dim)';
+      notifyBtn.style.background = notifyOn ? 'rgba(255,80,40,0.18)' : 'var(--divider-color)';
+      notifyBtn.style.color = notifyOn ? HOT : 'var(--secondary-text-color)';
     });
   }
 
@@ -565,7 +418,6 @@ class FireboardCardEditor extends HTMLElement {
     const wrap = document.createElement('div');
     wrap.style.cssText = 'padding: 8px 4px; display:flex; flex-direction:column; gap:16px;';
 
-    // Title + columns
     const topRow = document.createElement('div');
     topRow.style.cssText = 'display:flex; gap:12px;';
 
@@ -603,7 +455,6 @@ class FireboardCardEditor extends HTMLElement {
     topRow.appendChild(colField);
     wrap.appendChild(topRow);
 
-    // Channels
     const channelsHeader = document.createElement('div');
     channelsHeader.textContent = 'Channels';
     channelsHeader.style.cssText = 'font-size:13px; font-weight:500; color:var(--primary-text-color); margin-top:4px;';
@@ -771,6 +622,6 @@ window.customCards.push({
   type: 'fireboard-card',
   name: 'FireBoard Probes Card',
   description:
-    'FireBoard-style circular gauges per channel, with editable target temps, notify toggles, light/dark theme support, and a visual channel picker.',
+    'FireBoard-style circular gauges per channel that match your Home Assistant theme, with editable target temps, notify toggles, and a visual channel picker.',
   preview: true,
 });
