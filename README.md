@@ -88,6 +88,75 @@ has a single automation covering every channel — it checks each channel's
 notify helper before sending, and reads the current target dynamically so
 you never have to edit the automation itself when you change a target temp.
 
+## Optional: only show the card during an active cook
+
+FireBoard's Cloud API doesn't currently expose a reliable "is there an
+active session right now" flag via `fireboard2mqtt` (see
+[gordlea/fireboard2mqtt](https://github.com/gordlea/fireboard2mqtt) —
+this may improve in the future). In the meantime, you can infer it from
+your existing channel sensors: if any channel is reporting a real,
+non-zero temperature, a cook is probably happening.
+
+### 1. Create the "session active" helper
+
+Settings → Devices & Services → **Helpers** → **+ Create Helper** →
+**Template** → **Template a binary sensor**.
+
+- **Name:** `FireBoard Session Active`
+- **State** — paste this template, updating the entity list to match your
+  own channel sensors:
+
+  ```
+  {% set channels = [
+    'sensor.fireboard1_smoker',
+    'sensor.fireboard1_channel2',
+    'sensor.fireboard1_channel3',
+    'sensor.fireboard1_channel4',
+    'sensor.fireboard1_channel5',
+    'sensor.fireboard1_channel6'
+  ] %}
+  {% set active = channels
+      | map('states')
+      | select('is_number')
+      | map('float')
+      | select('ne', 0)
+      | list %}
+  {{ active | count > 0 }}
+  ```
+
+- **Device class:** optional — try "running" for friendlier "Running" /
+  "Not running" labels instead of raw on/off
+- Leave "Select a device" and "Availability template" blank
+- Click **Submit**
+
+This creates `binary_sensor.fireboard_session_active`, live, no restart
+needed.
+
+Caveat: this is a heuristic, not a real session flag. A probe sitting at
+exactly 0° (e.g. in a freezer) would read as inactive, and there's no way
+to know which channels are actually part of "the session" versus just
+plugged in and idle. Good enough for "is a cook probably happening," not
+perfect ground truth.
+
+### 2. Hide the card unless a session is active
+
+On the FireBoard card itself: click the card's ⋮ menu → **Edit Card** →
+**Visibility** tab → **Add condition** → **Entity state** → select
+`FireBoard Session Active` → set it to **Running** (or **on**, depending
+on whether you set a device class).
+
+Equivalent YAML, if you'd rather edit the dashboard config directly:
+
+```yaml
+visibility:
+  - condition: state
+    entity: binary_sensor.fireboard_session_active
+    state: "on"
+```
+
+The card will disappear from the dashboard when idle and reappear
+automatically once a channel starts reading real temperatures again.
+
 ## License
 
 MIT
