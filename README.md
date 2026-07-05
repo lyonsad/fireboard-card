@@ -108,7 +108,7 @@ Settings → Devices & Services → **Helpers** → **+ Create Helper** →
 
   ```
   {% set channels = [
-    'sensor.fireboard1_smoker',
+    'sensor.fireboard1_channel1',
     'sensor.fireboard1_channel2',
     'sensor.fireboard1_channel3',
     'sensor.fireboard1_channel4',
