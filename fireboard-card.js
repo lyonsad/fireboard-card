@@ -1,9 +1,9 @@
 // FireBoard Probes Card — v4
 // Circular gauge per channel, editable target temps, per-channel notify
-// toggles, a visual editor for picking channels, and now matches your
-// Home Assistant theme exactly (fonts, backgrounds, colors) by using HA's
-// own CSS variables instead of a custom palette. The only distinctive
-// visual element is the temperature-ramp gauge ring itself.
+// toggles, a visual editor for picking channels, and matches your Home
+// Assistant theme exactly (fonts, backgrounds, colors) by using HA's own
+// CSS variables instead of a custom palette, including for the gauge ring
+// itself.
 //
 // Install: copy to /config/www/fireboard-card.js, then add as a Lovelace
 // resource (Settings > Dashboards > ... > Resources > Add Resource,
@@ -11,8 +11,6 @@
 
 const RADIUS = 65;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
-const COLD = '#3e8ede';
-const WARM = '#ffb020';
 const HOT = '#ff4d2e';
 
 function clamp(v, lo, hi) {
@@ -81,19 +79,11 @@ class FireboardCard extends HTMLElement {
       const gaugeWrap = document.createElement('div');
       gaugeWrap.style.cssText = 'position: relative; width: 130px; height: 130px;';
 
-      const gradId = `fb-grad-${this._uid}-${i}`;
       gaugeWrap.innerHTML = `
         <svg viewBox="0 0 160 160" width="130" height="130">
-          <defs>
-            <linearGradient id="${gradId}" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stop-color="${COLD}"/>
-              <stop offset="55%" stop-color="${WARM}"/>
-              <stop offset="100%" stop-color="${HOT}"/>
-            </linearGradient>
-          </defs>
           <circle cx="80" cy="80" r="${RADIUS}" fill="none" stroke="var(--divider-color)" stroke-width="10"/>
           <circle data-role="value-arc" cx="80" cy="80" r="${RADIUS}" fill="none"
-            stroke="url(#${gradId})" stroke-width="10" stroke-linecap="round"
+            stroke="var(--primary-color)" stroke-width="10" stroke-linecap="round"
             stroke-dasharray="${CIRCUMFERENCE}" stroke-dashoffset="${CIRCUMFERENCE}"
             style="transform: rotate(-90deg); transform-origin: 50% 50%; transition: stroke-dashoffset 0.6s ease;"/>
           <line data-role="target-tick" x1="80" y1="80" x2="80" y2="80"
