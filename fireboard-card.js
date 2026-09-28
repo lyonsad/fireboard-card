@@ -234,7 +234,7 @@ class FireboardCard extends HTMLElement {
       const unit = sensorState?.attributes?.unit_of_measurement || '°F';
 
       const tempEl = tile.querySelector('[data-role="temp"]');
-      tempEl.textContent = hasVal ? `${Math.round(rawVal)}°` : '—';
+      tempEl.textContent = hasVal ? `${Math.round(rawVal)}${unit}` : '—';
 
       const arc = tile.querySelector('[data-role="value-arc"]');
       const fraction = hasVal ? clamp((rawVal - min) / (max - min), 0, 1) : 0;
