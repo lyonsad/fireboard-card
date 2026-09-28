@@ -17,6 +17,23 @@ function clamp(v, lo, hi) {
   return Math.max(lo, Math.min(hi, v));
 }
 
+function isCelsius(unit) {
+  return /^(?:°\s*)?c(?:elsius)?$/i.test(String(unit || '').trim());
+}
+
+function getDefaultRange(unit) {
+  return isCelsius(unit) ? { min: 0, max: 260 } : { min: 32, max: 500 };
+}
+
+function getGaugeRange(ch, unit) {
+  const defaults = getDefaultRange(unit);
+  const min = Number(ch.min ?? defaults.min);
+  const max = Number(ch.max ?? defaults.max);
+  return Number.isFinite(min) && Number.isFinite(max) && max > min
+    ? { min, max }
+    : defaults;
+}
+
 function resolveChannelName(ch, hass) {
   if (ch.name) return ch.name;
   const state = hass?.states?.[ch.sensor];
@@ -222,16 +239,15 @@ class FireboardCard extends HTMLElement {
       const tile = this._tiles[i];
       if (!tile) return;
 
-      const min = ch.min ?? 32;
-      const max = ch.max ?? 500;
+      const sensorState = this._hass.states[ch.sensor];
+      const unit = sensorState?.attributes?.unit_of_measurement || '°F';
+      const { min, max } = getGaugeRange(ch, unit);
 
       const nameEl = tile.querySelector('[data-role="name"]');
       if (nameEl) nameEl.textContent = resolveChannelName(ch, this._hass);
 
-      const sensorState = this._hass.states[ch.sensor];
       const rawVal = sensorState ? parseFloat(sensorState.state) : NaN;
-      const hasVal = !Number.isNaN(rawVal);
-      const unit = sensorState?.attributes?.unit_of_measurement || '°F';
+      const hasVal = Number.isFinite(rawVal);
 
       const tempEl = tile.querySelector('[data-role="temp"]');
       tempEl.textContent = hasVal ? `${Math.round(rawVal)}${unit}` : '—';
@@ -290,8 +306,6 @@ class FireboardCard extends HTMLElement {
           name: 'Smoker',
           target: 'input_number.fireboard_smoker_target',
           notify: 'input_boolean.fireboard_smoker_notify',
-          min: 32,
-          max: 500,
           enabled: true,
         },
         {
@@ -299,8 +313,6 @@ class FireboardCard extends HTMLElement {
           name: 'Brisket',
           target: 'input_number.fireboard_channel2_target',
           notify: 'input_boolean.fireboard_channel2_notify',
-          min: 32,
-          max: 250,
           enabled: true,
         },
       ],
@@ -361,10 +373,10 @@ class FireboardCardEditor extends HTMLElement {
       const result = await this._hass.callWS({
         type: 'input_number/create',
         name,
-        min: ch.min ?? 32,
-        max: ch.max ?? 500,
+        min: getGaugeRange(ch, this._hass?.states?.[ch.sensor]?.attributes?.unit_of_measurement).min,
+        max: getGaugeRange(ch, this._hass?.states?.[ch.sensor]?.attributes?.unit_of_measurement).max,
         step: 1,
-        unit_of_measurement: '°F',
+        unit_of_measurement: this._hass?.states?.[ch.sensor]?.attributes?.unit_of_measurement || '°F',
         icon: 'mdi:thermometer',
       });
       ch.target = `input_number.${result.id}`;
@@ -536,7 +548,7 @@ class FireboardCardEditor extends HTMLElement {
 
       const minInput = document.createElement('input');
       minInput.type = 'number';
-      minInput.value = ch.min ?? 32;
+      minInput.value = ch.min ?? getGaugeRange(ch, this._hass?.states?.[ch.sensor]?.attributes?.unit_of_measurement).min;
       minInput.style.cssText = 'width:70px; padding:4px; border-radius:4px; border:1px solid var(--divider-color); background:var(--secondary-background-color); color:var(--primary-text-color);';
       minInput.addEventListener('change', (e) => {
         ch.min = parseFloat(e.target.value);
@@ -549,7 +561,7 @@ class FireboardCardEditor extends HTMLElement {
 
       const maxInput = document.createElement('input');
       maxInput.type = 'number';
-      maxInput.value = ch.max ?? 500;
+      maxInput.value = ch.max ?? getGaugeRange(ch, this._hass?.states?.[ch.sensor]?.attributes?.unit_of_measurement).max;
       maxInput.style.cssText = 'width:70px; padding:4px; border-radius:4px; border:1px solid var(--divider-color); background:var(--secondary-background-color); color:var(--primary-text-color);';
       maxInput.addEventListener('change', (e) => {
         ch.max = parseFloat(e.target.value);
@@ -584,8 +596,6 @@ class FireboardCardEditor extends HTMLElement {
         name: 'New channel',
         target: '',
         notify: '',
-        min: 32,
-        max: 500,
         enabled: true,
       });
       this._fireChanged();
