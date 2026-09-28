@@ -13,7 +13,7 @@ that first — this card just visualizes the sensors it creates.
 
 ## Features
 
-- Circular gauge per channel with a blue → amber → red temperature ramp
+- Circular gauge per channel with a theme-matched temperature arc
 - Tap a gauge's target pill to set a target temp inline, no dashboard editing
 - Per-channel notification toggle (bell icon)
 - Pick which channels appear via a visual editor — no YAML required
@@ -23,16 +23,18 @@ that first — this card just visualizes the sensors it creates.
 
 ## Installation
 
-### Via HACS (recommended)
+### Via HACS
 
-1. HACS → Frontend → ⋮ (top right) → Custom repositories
-2. Add this repository's URL, category: Lovelace
-3. Search "FireBoard Probes Card" in HACS Frontend and install
+Once listed in the HACS default store, search for **FireBoard Probes Card** under **Frontend** and install it.
+
+Until then, add this repository as a custom repository in HACS: open **HACS → Frontend → ⋮ → Custom repositories**, enter this repository URL, and choose the **Dashboard** category. Search for the card and install it.
 4. Add the resource if HACS doesn't do it automatically: Settings →
    Dashboards → ⋮ → Resources → confirm `/hacsfiles/fireboard-card/fireboard-card.js`
    is listed as a JavaScript Module
 
-### Manual install
+#This repository is prepared for HACS default-store submission. The default-store listing is not available until HACS reviews and accepts the repository.
+
+## Manual install
 
 1. Copy `fireboard-card.js` to `/config/www/fireboard-card.js`
 2. Settings → Dashboards → ⋮ → Resources → Add Resource
@@ -72,7 +74,7 @@ Only listed channels render, and each accepts:
 | `name` | no | Display label — defaults to the sensor's name in Home Assistant (e.g. "Smoker", "Channel2") if left unset |
 | `target` | no | `input_number` entity holding the target temp |
 | `notify` | no | `input_boolean` entity controlling that channel's alert |
-| `min` / `max` | no | Gauge range, defaults to 32–500°F |
+| `min` / `max` | no | Gauge range; defaults to 32–500°F or 0–260°C based on the sensor unit |
 | `enabled` | no | Set `false` to hide without deleting the config |
 
 If you don't already have `target`/`notify` helpers, add the card via the
