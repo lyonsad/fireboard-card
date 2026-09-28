@@ -25,22 +25,22 @@ that first — this card just visualizes the sensors it creates.
 
 ### Via HACS
 
-Once listed in the HACS default store, search for **FireBoard Probes Card** under **Frontend** and install it.
+Once accepted into the HACS default store, search for **FireBoard Probes Card** under **Frontend** and install it. Until then, add this repository as a custom repository:
 
-Until then, add this repository as a custom repository in HACS: open **HACS → Frontend → ⋮ → Custom repositories**, enter this repository URL, and choose the **Dashboard** category. Search for the card and install it.
-4. Add the resource if HACS doesn't do it automatically: Settings →
-   Dashboards → ⋮ → Resources → confirm `/hacsfiles/fireboard-card/fireboard-card.js`
-   is listed as a JavaScript Module
+1. Open **HACS → Frontend → ⋮ → Custom repositories**.
+2. Enter this repository URL and choose the **Dashboard** category.
+3. Search for **FireBoard Probes Card** and install it.
+4. If HACS does not add the resource automatically, go to **Settings → Dashboards → ⋮ → Resources** and confirm `/hacsfiles/fireboard-card/fireboard-card.js` is listed as a JavaScript Module.
 
-#This repository is prepared for HACS default-store submission. The default-store listing is not available until HACS reviews and accepts the repository.
+The repository is prepared for HACS default-store submission. The listing will be available after HACS reviews and accepts the repository.
 
-## Manual install
+### Manual install
 
-1. Copy `fireboard-card.js` to `/config/www/fireboard-card.js`
-2. Settings → Dashboards → ⋮ → Resources → Add Resource
+1. Copy `fireboard-card.js` to `/config/www/fireboard-card.js`.
+2. Go to **Settings → Dashboards → ⋮ → Resources → Add Resource**.
    - URL: `/local/fireboard-card.js`
    - Type: JavaScript Module
-3. Refresh your browser
+3. Refresh your browser.
 
 ## Adding the card
 
