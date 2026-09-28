@@ -13,7 +13,7 @@ that first — this card just visualizes the sensors it creates.
 
 ## Features
 
-- Circular gauge per channel with a blue → amber → red temperature ramp
+- Circular gauge per channel with a theme-matched temperature arc
 - Tap a gauge's target pill to set a target temp inline, no dashboard editing
 - Per-channel notification toggle (bell icon)
 - Pick which channels appear via a visual editor — no YAML required
@@ -23,22 +23,24 @@ that first — this card just visualizes the sensors it creates.
 
 ## Installation
 
-### Via HACS (recommended)
+### Via HACS
 
-1. HACS → Frontend → ⋮ (top right) → Custom repositories
-2. Add this repository's URL, category: Lovelace
-3. Search "FireBoard Probes Card" in HACS Frontend and install
-4. Add the resource if HACS doesn't do it automatically: Settings →
-   Dashboards → ⋮ → Resources → confirm `/hacsfiles/fireboard-card/fireboard-card.js`
-   is listed as a JavaScript Module
+Once accepted into the HACS default store, search for **FireBoard Probes Card** under **Frontend** and install it. Until then, add this repository as a custom repository:
+
+1. Open **HACS → Frontend → ⋮ → Custom repositories**.
+2. Enter this repository URL and choose the **Dashboard** category.
+3. Search for **FireBoard Probes Card** and install it.
+4. If HACS does not add the resource automatically, go to **Settings → Dashboards → ⋮ → Resources** and confirm `/hacsfiles/fireboard-card/fireboard-card.js` is listed as a JavaScript Module.
+
+The repository is prepared for HACS default-store submission. The listing will be available after HACS reviews and accepts the repository.
 
 ### Manual install
 
-1. Copy `fireboard-card.js` to `/config/www/fireboard-card.js`
-2. Settings → Dashboards → ⋮ → Resources → Add Resource
+1. Copy `fireboard-card.js` to `/config/www/fireboard-card.js`.
+2. Go to **Settings → Dashboards → ⋮ → Resources → Add Resource**.
    - URL: `/local/fireboard-card.js`
    - Type: JavaScript Module
-3. Refresh your browser
+3. Refresh your browser.
 
 ## Adding the card
 
@@ -72,7 +74,7 @@ Only listed channels render, and each accepts:
 | `name` | no | Display label — defaults to the sensor's name in Home Assistant (e.g. "Smoker", "Channel2") if left unset |
 | `target` | no | `input_number` entity holding the target temp |
 | `notify` | no | `input_boolean` entity controlling that channel's alert |
-| `min` / `max` | no | Gauge range, defaults to 32–500°F |
+| `min` / `max` | no | Gauge range; defaults to 32–500°F or 0–260°C based on the sensor unit |
 | `enabled` | no | Set `false` to hide without deleting the config |
 
 If you don't already have `target`/`notify` helpers, add the card via the
