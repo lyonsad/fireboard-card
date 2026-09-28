@@ -11,6 +11,10 @@ This card is a companion to
 your FireBoard's sensors into Home Assistant via MQTT discovery. Install
 that first — this card just visualizes the sensors it creates.
 
+## Screenshot
+
+![FireBoard card showing a 225°F smoker reading and Channel 2 at 180°F with a 195°F target](images/fireboard-card-example.png)
+
 ## Features
 
 - Circular gauge per channel with a theme-matched temperature arc
