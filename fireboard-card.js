@@ -71,10 +71,15 @@ class FireboardCard extends HTMLElement {
     }
 
     const grid = document.createElement('div');
-    const columns = this.config.columns || 'auto-fill';
+    const columns = Number.isInteger(this.config.columns) && this.config.columns > 0
+      ? this.config.columns
+      : 'auto-fill';
+    const tracks = columns === 'auto-fill'
+      ? 'auto-fill, minmax(140px, 1fr)'
+      : `${columns}, minmax(0, 1fr)`;
     grid.style.cssText = `
       display: grid;
-      grid-template-columns: repeat(${columns === 'auto-fill' ? 'auto-fill, minmax(140px, 1fr)' : columns});
+      grid-template-columns: repeat(${tracks});
       gap: 12px;
       padding: 0 16px 16px;
     `;
@@ -297,25 +302,20 @@ class FireboardCard extends HTMLElement {
     return Math.ceil((this._visibleChannels.length || 1) / 3) * 3 + 1;
   }
 
-  static getStubConfig() {
+  static getStubConfig(hass, entities = [], entitiesFallback = []) {
+    const isFireboardTemperature = (id) => {
+      const state = hass?.states?.[id];
+      if (!state || !id.startsWith('sensor.')) return false;
+      const name = state.attributes?.friendly_name || '';
+      const unit = state.attributes?.unit_of_measurement;
+      return /fireboard/i.test(`${id} ${name}`) &&
+        (state.attributes?.device_class === 'temperature' || /^(?:°\s*)?[cf]$/i.test(unit || ''));
+    };
+    const available = entities.filter(isFireboardTemperature);
+    const sensors = available.length ? available : entitiesFallback.filter(isFireboardTemperature);
     return {
       title: 'FireBoard',
-      channels: [
-        {
-          sensor: 'sensor.fireboard1_smoker',
-          name: 'Smoker',
-          target: 'input_number.fireboard_smoker_target',
-          notify: 'input_boolean.fireboard_smoker_notify',
-          enabled: true,
-        },
-        {
-          sensor: 'sensor.fireboard1_channel2',
-          name: 'Brisket',
-          target: 'input_number.fireboard_channel2_target',
-          notify: 'input_boolean.fireboard_channel2_notify',
-          enabled: true,
-        },
-      ],
+      channels: sensors.length ? sensors.map((sensor) => ({ sensor })) : [{ sensor: '' }],
     };
   }
 
@@ -328,6 +328,8 @@ class FireboardCard extends HTMLElement {
 // Lets you check which channels show on the card, edit each channel's
 // entities inline, and add/remove channels — no YAML required.
 
+let pickerListId = 0;
+
 class FireboardCardEditor extends HTMLElement {
   setConfig(config) {
     this._config = JSON.parse(JSON.stringify(config || {}));
@@ -337,9 +339,10 @@ class FireboardCardEditor extends HTMLElement {
   }
 
   set hass(hass) {
+    const hadHass = !!this._hass;
     this._hass = hass;
     if (!this._config) return;
-    if (this._built) this._refreshPickers();
+    if (this._built && hadHass) this._refreshPickers();
     else this._render();
   }
 
@@ -354,6 +357,27 @@ class FireboardCardEditor extends HTMLElement {
   }
 
   _entityPicker(value, includeDomain, onChange) {
+    if (!customElements.get('ha-entity-picker')) {
+      const input = document.createElement('input');
+      const list = document.createElement('datalist');
+      list.id = `fireboard-entities-${++pickerListId}`;
+      input.setAttribute('list', list.id);
+      input.value = value || '';
+      input.placeholder = 'Entity ID';
+      input.style.cssText = 'display:block; width:100%; box-sizing:border-box; margin-bottom:4px;';
+      Object.keys(this._hass?.states || {})
+        .filter((id) => !includeDomain || id.startsWith(`${includeDomain}.`))
+        .forEach((id) => {
+          const option = document.createElement('option');
+          option.value = id;
+          list.appendChild(option);
+        });
+      input.addEventListener('change', () => onChange(input.value));
+      const fallback = document.createElement('span');
+      fallback.appendChild(input);
+      fallback.appendChild(list);
+      return fallback;
+    }
     const picker = document.createElement('ha-entity-picker');
     picker.hass = this._hass;
     picker.value = value || '';
@@ -504,6 +528,7 @@ class FireboardCardEditor extends HTMLElement {
       const removeBtn = document.createElement('button');
       removeBtn.textContent = '✕';
       removeBtn.title = 'Remove channel';
+      removeBtn.disabled = this._config.channels.length === 1;
       removeBtn.style.cssText = 'border:none; background:transparent; color:var(--secondary-text-color); cursor:pointer; font-size:14px; padding:4px 8px;';
       removeBtn.addEventListener('click', () => {
         this._config.channels.splice(i, 1);
@@ -525,14 +550,14 @@ class FireboardCardEditor extends HTMLElement {
 
       const targetWrap = document.createElement('div');
       targetWrap.innerHTML = `<label style="font-size:11px; color:var(--secondary-text-color);">Target helper</label>`;
-      targetWrap.appendChild(this._entityPicker(ch.target, 'input_number', (v) => { ch.target = v; this._fireChanged(); }));
+      targetWrap.appendChild(this._entityPicker(ch.target, 'input_number', (v) => { ch.target = v; this._fireChanged(); this._render(); }));
       if (!ch.target) {
         targetWrap.appendChild(this._createHelperButton('+ create new helper', () => this._createInputNumberHelper(ch)));
       }
 
       const notifyWrap = document.createElement('div');
       notifyWrap.innerHTML = `<label style="font-size:11px; color:var(--secondary-text-color);">Notify helper</label>`;
-      notifyWrap.appendChild(this._entityPicker(ch.notify, 'input_boolean', (v) => { ch.notify = v; this._fireChanged(); }));
+      notifyWrap.appendChild(this._entityPicker(ch.notify, 'input_boolean', (v) => { ch.notify = v; this._fireChanged(); this._render(); }));
       if (!ch.notify) {
         notifyWrap.appendChild(this._createHelperButton('+ create new helper', () => this._createInputBooleanHelper(ch)));
       }
@@ -593,10 +618,6 @@ class FireboardCardEditor extends HTMLElement {
     addBtn.addEventListener('click', () => {
       this._config.channels.push({
         sensor: '',
-        name: 'New channel',
-        target: '',
-        notify: '',
-        enabled: true,
       });
       this._fireChanged();
       this._render();
@@ -624,4 +645,5 @@ window.customCards.push({
   description:
     'FireBoard-style circular gauges per channel that match your Home Assistant theme, with editable target temps, notify toggles, and a visual channel picker.',
   preview: true,
+  documentationURL: 'https://github.com/lyonsad/fireboard-card#adding-the-card',
 });

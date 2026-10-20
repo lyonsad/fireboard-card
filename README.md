@@ -29,14 +29,11 @@ that first — this card just visualizes the sensors it creates.
 
 ### Via HACS
 
-Once accepted into the HACS default store, search for **FireBoard Probes Card** under **Frontend** and install it. Until then, add this repository as a custom repository:
-
-1. Open **HACS → Frontend → ⋮ → Custom repositories**.
-2. Enter this repository URL and choose the **Dashboard** category.
-3. Search for **FireBoard Probes Card** and install it.
-4. If HACS does not add the resource automatically, go to **Settings → Dashboards → ⋮ → Resources** and confirm `/hacsfiles/fireboard-card/fireboard-card.js` is listed as a JavaScript Module.
-
-The repository is prepared for HACS default-store submission. The listing will be available after HACS reviews and accepts the repository.
+1. Open **HACS** and search for **FireBoard Probes Card**.
+2. Open the repository and select **Download**.
+3. Refresh your browser. If the card is not available in the dashboard card
+   picker, check **Settings → Dashboards → ⋮ → Resources** for
+   `/hacsfiles/fireboard-card/fireboard-card.js` as a JavaScript Module.
 
 ### Manual install
 
@@ -48,8 +45,11 @@ The repository is prepared for HACS default-store submission. The listing will b
 
 ## Adding the card
 
-Dashboard → Edit → Add Card → search "FireBoard Probes Card", or add this
-YAML directly:
+Dashboard → Edit → Add Card → search **FireBoard Probes Card**. The visual
+editor starts with available FireBoard temperature sensors when it finds them;
+otherwise, select a temperature sensor in the blank channel. Choose any
+existing target and notification helpers or create them in the editor.
+You can also add this YAML directly:
 
 ```yaml
 type: custom:fireboard-card
