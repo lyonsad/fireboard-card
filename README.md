@@ -49,6 +49,12 @@ Dashboard → Edit → Add Card → search **FireBoard Probes Card**. The visual
 editor starts with available FireBoard temperature sensors when it finds them;
 otherwise, select a temperature sensor in the blank channel. Choose any
 existing target and notification helpers or create them in the editor.
+
+This card displays probe temperatures, including probes on FireBoard devices
+with Drive. Its optional target and notification controls use Home Assistant
+helpers; it does not control the Drive fan or manage Drive setpoints. Drive
+setpoint sensors are excluded from automatic starter channel selection.
+
 You can also add this YAML directly:
 
 ```yaml
