@@ -70,6 +70,8 @@ const hass = { states: {
   'sensor.fireboard1_smoker': { state: '225', attributes: { friendly_name: 'FireBoard Smoker', unit_of_measurement: '°F' } },
   'sensor.fireboard2_probe': { state: '96', attributes: { friendly_name: 'FireBoard Probe', device_class: 'temperature', unit_of_measurement: '°C' } },
   'sensor.fireboard_battery': { state: '90', attributes: { friendly_name: 'FireBoard Battery', unit_of_measurement: '%' } },
+  'sensor.fireboard3_drive_setpoint': { state: '225', attributes: { friendly_name: 'Controller', device_class: 'temperature', unit_of_measurement: '°F' } },
+  'sensor.fireboard4_dial': { state: '225', attributes: { friendly_name: 'FireBoard Drive Setpoint', device_class: 'temperature', unit_of_measurement: '°F' } },
   'sensor.room': { state: '21', attributes: { friendly_name: 'Room', device_class: 'temperature', unit_of_measurement: '°C' } },
   'input_number.smoker_target': { state: '250', attributes: {} },
   'input_boolean.smoker_notify': { state: 'off', attributes: {} },
@@ -90,6 +92,12 @@ test('picker registration and starter select only real FireBoard temperature sen
     { sensor: 'sensor.fireboard2_probe' },
   ]);
   assert.deepEqual(plain(Card.getStubConfig(hass, [], []).channels), [{ sensor: '' }]);
+});
+
+test('setpoint-only discovery stays an editable blank starter', () => {
+  const ids = ['sensor.fireboard3_drive_setpoint', 'sensor.fireboard4_dial'];
+  assert.deepEqual(plain(Card.getStubConfig(hass, ids, []).channels), [{ sensor: '' }]);
+  assert.deepEqual(plain(Card.getStubConfig(hass, [], ids).channels), [{ sensor: '' }]);
 });
 
 test('cold editor offers local entity choices and preserves YAML options', () => {

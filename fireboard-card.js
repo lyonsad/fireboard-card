@@ -308,6 +308,8 @@ class FireboardCard extends HTMLElement {
       if (!state || !id.startsWith('sensor.')) return false;
       const name = state.attributes?.friendly_name || '';
       const unit = state.attributes?.unit_of_measurement;
+      // fireboard2mqtt also exposes Drive Setpoint as a temperature sensor.
+      if (/(?:^|[_.\s-])set[_\s-]?point(?:$|[_.\s-])/i.test(`${id} ${name}`)) return false;
       return /fireboard/i.test(`${id} ${name}`) &&
         (state.attributes?.device_class === 'temperature' || /^(?:°\s*)?[cf]$/i.test(unit || ''));
     };
